@@ -2,16 +2,16 @@
 #define _DEBUG_H_
 
 #ifdef DEBUG
-#define debug1(str) printf("DEBUG %s\n", str);
-#define debug2(s1, s2) printf("DEBUG %s %s\n", s1, s2);
-#define debug3(s1, s2, s3) printf("DEBUG %s %s %s\n", s1, s2, s3);
-#define debug4(s1, s2, s3, s4) printf("DEBUG %s %s %s %s\n", s1, s2, s3, s4);
+#define _D_ 1
 #else
-#define debug(s)
-#define debug2(s1, s2)
-#define debug3(s1, s2, s3)
-#define debug4(s1, s2, s3, s4)
+#define _D_ 0
 #endif
+
+#define debugs(s) if (_D_ == 1) printf("DEBUG %s\n", s);
+#define debugss(s1, s2) if (_D_ == 1) printf("DEBUG %s %s\n", s1, s2);
+#define debugsss(s1, s2, s3) if (_D_ == 1) printf("DEBUG %s %s %s\n", s1, s2, s3);
+#define debugssi(s1, s2, n) if (_D_ == 1) printf("DEBUG %s %s %d\n", s1, s2, n);
+#define debugssss(s1, s2, s3, s4) if (_D_ == 1) printf("DEBUG %s %s %s %s\n", s1, s2, s3, s4);
 
 static inline char * debugInt2String(int i) {
 #ifdef DEBUG
