@@ -3,24 +3,27 @@
 
 class cxxProxyDriver {
 public:
-    cxxProxyDriver(char * com_path, _u32 com_baudrate);
+    cxxProxyDriver(int);
     ~cxxProxyDriver();
     unsigned int Connect(const char* port_path, _u32 baudrate, _u32 flag);
     void Disconnect();
     int IsConnected();
     unsigned int Reset(_u32 timeout);
-    rplidar_device_info_unpacked* GetDeviceInfo(_u32 timeout);
-    void FreeRplidarDeviceInfoUnpacked(rplidar_device_info_unpacked* data);
-    uint GetHealth(_u32 timeout);
-    void StartMotor();
-    void Stop(_u32 timeout);
-    void StopMotor();
+    health_response GetHealth(unsigned int timeout);
+    rplidar_device_info_unpacked* GetDeviceInfo(unsigned int timeout);
+    rplidar_response_sample_rate_unpacked GetSampleDuration_uS(_u32 timeout);
+    unsigned int SetMotorPWM(_u16 pwm);
+    unsigned int StartMotor();
+    unsigned int StopMotor();
+    rplidar_motor_ctrl_support_status CheckMotorCtrlSupport(_u32);
+    frequency_data GetFrequency(int inExpressMode, size_t count);
+    express_mode_support_status CheckExpressScanSupported(unsigned int);
     unsigned int StartScan(bool force, bool autoExpressMode);
-    rplidar_scan_results_packed* GrabScanData(unsigned int, _u32 timeout);
-    _rplidar_response_measurement_node_t* Get_rplidar_response_measurement_node_t(rplidar_scan_results_packed*, uint);
-    void FreeRplidarScanResultsPacked(rplidar_scan_results_packed*);
-    rplidar_scan_results_packed_p AscendScanData(rplidar_scan_results_packed_p);
-    rplidar_scan_results_unpacked_p UnPack(rplidar_scan_results_packed_p);
+    unsigned int StartScanNormal(bool force, _u32 timeout);
+    unsigned int StartScanExpress(bool fixedAngle, _u32 timeout);
+    unsigned int Stop(_u32 timeout);
+    rplidar_scan_results_unpacked* GrabScanData(unsigned int, _u32 timeout);
+    rplidar_scan_results_unpacked* GrabAndSortScanData(unsigned int scans, unsigned int timeout);
 };
 
 #endif

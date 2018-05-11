@@ -4,7 +4,7 @@ CFLAGS += -I../include -DDEBUG -g
 
 TARGET=DONE
 
-$(TARGET): ../lib/librplidar_sdk.a proxy_driver.o driver.o cdriver.o
+$(TARGET): ../lib/librplidar_sdk.a proxy_driver.o cdriver.o
 	go build .
 
 %.o: %.cpp

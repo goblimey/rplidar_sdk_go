@@ -85,32 +85,32 @@ typedef struct _rplidar_payload_acc_board_flag_t {
 
 // Response
 // ------------------------------------------
-#define RPLIDAR_ANS_TYPE_DEVINFO          0x4
-#define RPLIDAR_ANS_TYPE_DEVHEALTH        0x6
+#define RplidarAnswerTypeDevinfo          0x4
+#define RplidarAnswerTypeDevHealth        0x6
 
-#define RPLIDAR_ANS_TYPE_MEASUREMENT                0x81
+#define RplidarAnswerTypeMeasurement               0x81
 // Added in FW ver 1.17
-#define RPLIDAR_ANS_TYPE_MEASUREMENT_CAPSULED       0x82
+#define RplidarAnswerTypeMeasurementCapsuled       0x82
 
 // Added in FW ver 1.17
-#define RPLIDAR_ANS_TYPE_SAMPLE_RATE      0x15
+#define RplidarAnswerTypeSampleRate      0x15
 
-#define RPLIDAR_ANS_TYPE_ACC_BOARD_FLAG   0xFF
+#define RplidarAnswerTypeAccBoardFlag   0xFF
 
-#define RPLIDAR_RESP_ACC_BOARD_FLAG_MOTOR_CTRL_SUPPORT_MASK      (0x1)
+#define RplidarResponseAccBoardFlagMotorCtrlSupportMask      (0x1)
 typedef struct _rplidar_response_acc_board_flag_t {
     _u32 support_flag;
 } __attribute__((packed)) rplidar_response_acc_board_flag_t;
 
 
-#define RPLIDAR_STATUS_OK                 0x0
-#define RPLIDAR_STATUS_WARNING            0x1
-#define RPLIDAR_STATUS_ERROR              0x2
+#define RRplidarStatusOK                 0x0
+#define RplidarStatusWarning            0x1
+#define RplidarStatusError              0x2
 
-#define RPLIDAR_RESP_MEASUREMENT_SYNCBIT        (0x1<<0)
-#define RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT  2
-#define RPLIDAR_RESP_MEASUREMENT_CHECKBIT       (0x1<<0)
-#define RPLIDAR_RESP_MEASUREMENT_ANGLE_SHIFT    1
+#define RplidarResponseMeasurementSyncBit        (0x1<<0)
+#define RplidarResponseMeasurementQualityShift  2
+#define RplidarResponseMeasurementCheckBit       (0x1<<0)
+#define RplidarResponseMeasurementAngleShift    1
 
 typedef struct _rplidar_response_sample_rate_t {
     _u16  std_sample_duration_us;
@@ -124,8 +124,8 @@ typedef struct _rplidar_response_measurement_node_t {
 } __attribute__((packed)) rplidar_response_measurement_node_t;
 
 //[distance_sync flags]
-#define RPLIDAR_RESP_MEASUREMENT_EXP_ANGLE_MASK           (0x3)
-#define RPLIDAR_RESP_MEASUREMENT_EXP_DISTANCE_MASK        (0xFC)
+#define RplidarResponseMeasurementExpAngleMask           (0x3)
+#define RplidarResponseMeasurementExpDistanceMask        (0xFC)
 
 typedef struct _rplidar_response_cabin_nodes_t {
     _u16   distance_angle_1; // see [distance_sync flags]
@@ -134,10 +134,10 @@ typedef struct _rplidar_response_cabin_nodes_t {
 } __attribute__((packed)) rplidar_response_cabin_nodes_t;   
 
 
-#define RPLIDAR_RESP_MEASUREMENT_EXP_SYNC_1               0xA
-#define RPLIDAR_RESP_MEASUREMENT_EXP_SYNC_2               0x5
+#define RplidarResponseMeasurementExpSync1               0xA
+#define RplidarResponseMeasurementExpSync2               0x5
 
-#define RPLIDAR_RESP_MEASUREMENT_EXP_SYNCBIT              (0x1<<15)
+#define RplidarResponseMeasurementExpSyncBit              (0x1<<15)
 
 typedef struct _rplidar_response_capsule_measurement_nodes_t {
     _u8                             s_checksum_1; // see [s_checksum_1]
