@@ -20,23 +20,13 @@ Windows, Linux and the Mac OS.
 
 This package allows Go software to use Slamtec's driver.
 
-To get the Go driver working, you need to download the RPLidar SDK and
-build it.  
-You need a C++ compiler to build the SDK.  If you don't already have one, the free 
-[GNU compiler](https://gcc.gnu.org/) will do the job.  
-See the Download links on the right of that page.
-You will also need the [GNU Make tool](https://www.gnu.org/software/make/).
+To get the Go driver working, you need to download the RPLidar SDK and build it.  You need a C++ compiler to build the SDK.  If you don't already have one, the free [GNU compiler](https://gcc.gnu.org/) will do the job.  See the Download links on the right of that page.  You will also need the [GNU Make tool](https://www.gnu.org/software/make/).
 
 Download the RPLidar SDK from [here](https://www.slamtec.com/en/Support/).
 
-Download the library distibution zip file from the above link.
+Unzip the distribution into a directory somewhere.  Unzipping it produces a directory rplidar.
 
-Unzip the distribution into a directory somewhere.  
-Unzipping it produces a directory rplidar.
-
-The implementation of the interface is in rplidar/sdk/sdk/src/rplidar_driver.cpp.  
-There are example applications in separate
-directories in rplidar/sdk/app.  The comments in those bits of code give a lot of information about the driver.
+The implementation of the interface is in rplidar/sdk/sdk/src/rplidar_driver.cpp.  There are example applications in separate directories in rplidar/sdk/app.  The comments in those bits of code give a lot of information about the driver.
 
 To build the library:
 
@@ -65,7 +55,9 @@ Now you can build the Go wrapper and the applications:
 Run the applications something like this:
 
     $ simple_grabber_go    # using default settings
+
 or
+
     $ simple_grabber_go -v /dev/ttyUSB0 115200
 
 On Windows the default port is COM3.
@@ -157,11 +149,7 @@ The #cgo comment lines specify directives for the C++ compiler.
 ${SRCDIR} defines the current directory.
 -I says where to find the header files. 
 
-The -l option specifies libraries.
-The compiler knows where to find the standard libraries
-but it needs to be told where to find the Slamtech library that you built and copied..
--L says which directory to find the library. 
--l defines the library itself (-lx means the file libx.a).  
+The -l option specifies libraries.  The compiler knows where to find the standard libraries but it needs to be told where to find the Slamtech library that you built and copied..  -L says which directory to find the library.  -l defines the library itself (-lx means the file libx.a).  
 
 -DDEBUG turns on debugging code.  This will create the library in a different directory.  Actually
 the libray contains very little debugging code, so enabling debug doesn't do very much.
@@ -183,20 +171,16 @@ Given this, a Go method can call a C++ method like so:
 	C.RPDriverStartMotor(d.driver)
     }
 
-The cgo tool has a nasty habit of occasionally rewriting the original source code, including removing all comments.  For this
-reason, the Go code that uses cgo, usb_driver.go, does not contain any comments.  All comments are kept
-in the Driver interface driver.go.
+The cgo tool has a nasty habit of occasionally rewriting the original source code, including removing all comments.  For this reason, the Go code that uses cgo, usb_driver.go, does not contain any comments.  All comments are kept in the Driver interface driver.go.
 
 An alternative approach to implementing this Go driver would be to mimic the C++ driver line for line,
 but whoever did that would need to maintain it as new versons of the C++ driver are issued.  As long as any
 future version of the C++ driver respects the manufacturer's own interface, 
 this wrapper should work with it.
 
-For more details of Go calling C++ code via a C interface, read [the manual](https://golang.org/cmd/cgo/).  
-The Go project github.com/burke/howto-go-with-cpp provides a simple worked example.
+For more details of Go calling C++ code via a C interface, read [the manual](https://golang.org/cmd/cgo/).  The Go project github.com/burke/howto-go-with-cpp provides a simple worked example.
 
-I haven't written any C or C++ software for over twenty years so my implementation
-of the C++ proxy could probably be improved.
+I haven't written any C or C++ software for over twenty years so my implementation of the C++ proxy could probably be improved.
 
 
 ```
