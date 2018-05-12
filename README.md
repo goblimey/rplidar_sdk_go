@@ -4,14 +4,15 @@ A Go wrapper for the RPLidar SDK
 This project defines a Go driver for the Slamtec RPLIDAR device.  This driver is a Go wrapper around a C++ driver
 supplied by Slamtec.  
 
+See the end of this page for detailed Go docs.
+
 RPLidar is a range of devices intended for Simultaneous 
 Localisation And Mapping (SLAM) applications.
 An RPLidar device uses a laser beam mounted on a spinning platform to scan nearby objects in a circle
 and return a list of angle and distance values. The original purpose was to produce a floor plan of the room in which
 a robot vacuum cleaner was running.
 
-Slamtech publish the RPLidar SDK, a C++ library of software to control the RPLidar
-[here](https://www.slamtec.com/en/Support/).
+Slamtech publish the RPLidar SDK, a C++ library of software to control the RPLidar.
 The C++ driver is defined by an interface and Slamtec supplies an
 implementation which runs on a host computer and connects to the RPLidar device using a serial connection via
 a USB port.  The C++ software is supplied as source code and you can compile versions to run under Micrososoft
@@ -20,30 +21,43 @@ Windows, Linux and the Mac OS.
 This package allows Go software to use Slamtec's driver.
 
 To get the Go driver working, you need to download the RPLidar SDK and
-build it.  You need a C++ compiler to do ths.  The free GNU compiler will do the job.  Within
-the project the implementation of the interface is in rplidar/sdk/sdk/src/rplidar_driver.cpp.  
-The example applications are in separate
-directories in rplidar/sdk/app.  The comments in those bits of code give a lot of information about the driver.
+build it.  
+You need a C++ compiler to build the SDK.  If you don't already have one, the free 
+[GNU compiler](https://gcc.gnu.org/) will do the job.  
+See the Download links on the right of that page.
+You will also need the [GNU Make tool](https://www.gnu.org/software/make/).
+
+Download the RPLidar SDK from [here](https://www.slamtec.com/en/Support/).
 
 Download the library distibution zip file from the above link.
 
-Unzip the distribution into a directory somewhere.
+Unzip the distribution into a directory somewhere.  
+Unzipping it produces a directory rplidar.
 
-Unzipping it produces directories sdk and tools.
+The implementation of the interface is in rplidar/sdk/sdk/src/rplidar_driver.cpp.  
+There are example applications in separate
+directories in rplidar/sdk/app.  The comments in those bits of code give a lot of information about the driver.
 
-    $ cd sdk
+To build the library:
+
+    $ cd rplidar/sdk
     $ make clean
     $ make
 
-This produces the library.  For a linux environment, the library is sdk/output/Linux/Release/librplidar_sdk.a
+In a linux environment, this produces a library in sdk/output/Linux/Release/librplidar_sdk.a
+
+Next download the Go wrapper:
 
     $ go get github.com/goblimey/rplidar_sdk_go/simple_grabber_go
 
-THIS WILL THROW AN ERROR because it needs a copy of the library before it can build the wrapper.
+THIS WILL THROW AN ERROR because it needs a copy of the library before it can build the wrapper,
+but it downloads the Go project.
 
-In your Go projects directory you now have github.com/goblimey/rplidar_sdk_go and within that a directory called lib.
+In your Go projects directory you now have github.com/goblimey/rplidar_sdk_go and within that a directory lib.
 
-Copy the C++ library that you built earlier into the lib directory.  Now you can build the Go wrapper and the applications:
+Copy the C++ library that you built earlier into the lib directory.  
+
+Now you can build the Go wrapper and the applications:
 
     $ go install github.com/goblimey/rplidar_sdk_go/simple_grabber_go
     $ go install github.com/goblimey/rplidar_sdk_go/ultra_simple_go
@@ -54,12 +68,15 @@ Run the applications something like this:
 or
     $ simple_grabber_go -v /dev/ttyUSB0 115200
 
-The name of the USB port differs for different systems and depends on how many USB devices you have plugged in.  
-On Linux the default Windows the default port is COM3.
+On Windows the default port is COM3.
 
 The -v option turn on verbose mode, which producing lots of tracing messages.
 
-See below for godocs.
+The name of the USB port differs for different systems and depends on how many USB devices you have plugged in.  
+On Linux your USB ports are /dev/ttyUSB0, /dev/ttyUSB1 and so on.  If your RPLidar device is the only USB device
+plugged in, it will be on /dev/ttyUSB0.
+
+See below for the godoc describing the driver calls.
 
 
 The RPLidar Device
@@ -68,10 +85,10 @@ The RPLidar Device
 The default speed of the spinning platform is 720 revs per minute (12 per second).  The StartScan operations starts
 the device scanning. It scans continuously, collecting measurements until the controller issues a Stop operation.
 While the device is scanning, the GrabScanData operation grabs a full circle of measurements into the memory of the
-host computer.  They start at whatever angle the platform is pointing to when the scan grab starts, so they are usually
-out of order, for example, if the scan yields 360 measurements starting at exactly 35 degrees, the list will start with
-the measurement for that angle, followed by the ones for 36 degrees to 359 degrees, followed by the measurements
-for 0 degrees to 34 degrees.
+host computer.  The meaurements start at whatever angle the platform is pointing to when the scan grab starts, so they are usually
+out of order.
+For example, if the scan yields 360 measurements starting at exactly 35 degrees, the list will contain
+the measurement for 35 degrees, 36 degrees, ... 359 degrees, 0 degrees, ... 34 degrees.
 
 Actually, the device I used to test the software typically returns about 300 measurements in each scan, with the angle
 starting at a value such 35.6 and incrementing by 360/300, which is 1.8 degrees.
@@ -118,20 +135,9 @@ Go code cannot call C++ code directly.  It can call a C function using the cgo m
 methods.  However, the C and C++ code has to fit certain rules for cgo to work and the RPLiadr C++ driver code defeats it.  To get around
 this problem I created an extra layer of C++, a proxy driver that provides a simpler interface that cgo can handle.  The
 end result is this Go interface plus a concrete type that implements it and provides a set of Go methods each of which
-calls a C interface function which calls a method in the C++ proxy, which calls a method in the original driver.  That
-sounds inefficient, but since the device scans relatively slowly compared to the speed of even the cheapest processor,
-this should not be an issue.  A tiny computer such as a Raspberry Pi will probably spend most of its time waiting for
-data to arrive from the device, and the time lost due to this complex chain of calls will be insignificant in comparison.
+calls a C interface function which calls a method in the C++ proxy, which calls a method in the original driver.  
 
-The cgo tool has a nasty habit of rewriting the original source code, including removing all comments.  For this
-reason, the Go code that implements this interface and uses cgo, does not contain any comments.  All comments are kept
-in this interface.
-
-An alternative approach to implemeting this Go driver would be to reimplement the C++ driver line for line,
-but whoever did that would need to maintain it as new versons of the C++ driver are issued.  As long as any
-future version of the C++ driver respects the manufacturer's own interface, you should be able to slot the new version in.
-
-The driver.go file contains some magic to glue all this stuff together:
+The usb_driver.go file contains some magic to glue all this stuff together:
 
     // #cgo CFLAGS: -I${SRCDIR}/../include -DDEBUG -g
     // #cgo CXXFLAGS: -I${SRCDIR}/../include -DDEBUG -g
@@ -176,6 +182,15 @@ Given this, a Go method can call a C++ method like so:
     func (d ConcreteRPlidarDriver) StartMotor() {
 	C.RPDriverStartMotor(d.driver)
     }
+
+The cgo tool has a nasty habit of occasionally rewriting the original source code, including removing all comments.  For this
+reason, the Go code that uses cgo, usb_driver.go, does not contain any comments.  All comments are kept
+in the Driver interface driver.go.
+
+An alternative approach to implementing this Go driver would be to mimic the C++ driver line for line,
+but whoever did that would need to maintain it as new versons of the C++ driver are issued.  As long as any
+future version of the C++ driver respects the manufacturer's own interface, 
+this wrapper should work with it.
 
 For more details of Go calling C++ code via a C interface, read [the manual](https://golang.org/cmd/cgo/).  
 The Go project github.com/burke/howto-go-with-cpp provides a simple worked example.
