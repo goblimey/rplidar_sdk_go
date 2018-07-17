@@ -16,10 +16,11 @@ func PrintNodes(nodes []driver.RplidarResponseMeasurementNode) {
 		if node.CheckBit() {
 			checkBit = "C"
 		}
-		fmt.Printf("%3d [%s%s] A [%3d %2d %6.2f] D [%4d %2d %08.2f] Q %3d\n",
-			i, syncBit, checkBit,
+		fmt.Printf("%3d [%s%s] A [0x%04x %3d %2d %6.2f] D [0x%04x %4d %2d %08.2f] Q %3d\n",
+			i, syncBit, checkBit, node.AngleAsInt(),
 			node.AngleAsInt()>>6, node.AngleAsInt()&0x3f, node.AngleAsFloat32(),
-			node.DistanceQ2>>2, node.DistanceQ2&0x4, node.DistanceAsFloat32(), node.Quality())
+			node.AngleAsInt(), node.DistanceQ2>>2, node.DistanceQ2&0x3, node.DistanceAsFloat32(),
+			node.Quality())
 	}
 }
 

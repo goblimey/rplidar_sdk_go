@@ -7,6 +7,7 @@ import (
 
 	"github.com/goblimey/rplidar_sdk_go/driver"
 	USBDriver "github.com/goblimey/rplidar_sdk_go/usb_driver"
+	"github.com/goblimey/rplidar_sdk_go/utils"
 )
 import "flag"
 
@@ -71,20 +72,7 @@ func main() {
 
 	log.Printf("main: %d scans", len(sortedData))
 
-	for i, node := range sortedData {
-		syncBit := " "
-		if node.SyncBit() {
-			syncBit = "S"
-		}
-		checkBit := " "
-		if node.CheckBit() {
-			checkBit = "C"
-		}
-		log.Printf("main: %3d: %s %s theta: %3d %2d %03.2f Dist: %4d %2d %08.2f Q: %2d\n",
-			i, syncBit, checkBit,
-			node.AngleAsInt()>>6, node.AngleAsInt()&0x3f, node.AngleAsFloat32(),
-			node.DistanceQ2>>2, node.DistanceQ2&0x4, node.DistanceAsFloat32(), node.Quality())
-	}
+	utils.PrintNodes(sortedData)
 }
 
 func tidyup(usbDriver driver.Driver) {

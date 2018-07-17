@@ -162,7 +162,7 @@ func (d USBDriver) GetDeviceInfo(timeout uint) (driver.DeviceInfo, uint) {
 
 	result.Model = uint(cinfo.model)
 	result.MajorFimwareVersion = uint(cinfo.majorFirmwareVersion)
-	result.SyncQuality = uint(cinfo.minorFirmwareVersion)
+	result.MinorFirmwareVersion = uint(cinfo.minorFirmwareVersion)
 	result.HardwareVersion = uint(cinfo.hardwareVersion)
 	result.SerialNumber = C.GoString(cinfo.serialNumber)
 
