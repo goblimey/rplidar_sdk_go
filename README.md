@@ -1,32 +1,68 @@
 # rplidar_sdk_go
 A Go wrapper for the RPLidar SDK
 
-This project defines a Go driver for the Slamtec RPLIDAR device.  This driver is a Go wrapper around a C++ driver
+This project defines a Go driver for the Slamtec RPLIDAR device.
+This driver is a Go wrapper around a C++ driver
 supplied by Slamtec.  
 
 See the end of this page for detailed Go docs.
 
 RPLidar is a range of devices intended for Simultaneous 
 Localisation And Mapping (SLAM) applications.
-An RPLidar device uses a laser beam mounted on a spinning platform to scan nearby objects in a circle
-and return a list of angle and distance values. The original purpose was to produce a floor plan of the room in which
+An RPLidar uses a laser sensor
+mounted on a spinning platform to scan the nearby objects in a circle.
+It returns a list of angle and distance values.
+The original purpose of the device was to produce a floor plan of the room in which
 a robot vacuum cleaner was running.
+By moving the robot around,
+taking a series of scans from different points
+and merging them,
+an accurate view of the room that it's working in
+can be produced.
 
-Slamtech publish the RPLidar SDK, a C++ library of software to control the RPLidar.
+The picture rplidar.jpg
+shows the RPLidar working, driven by my grabanddraw program.
+The resulting floor plan is in 
+scan.png.
+I ran the program in verbose mode and the tracing output is in scan.txt.
+
+Different models produce results of different accuracy.
+Currently the most accurate (and most expensive)
+is the A3 which claims a range 0f 150mm - 25m,
+angular resolution of 0.3 degrees
+and an accuracy in the distance measurement of less than 1%.
+I ran some fairly simple tests and verified this.
+See below for more details.
+
+Slamtec publish the RPLidar SDK, a C++ library of software to control the RPLidar.
 The C++ driver is defined by an interface and Slamtec supplies an
 implementation which runs on a host computer and connects to the RPLidar device using a serial connection via
-a USB port.  The C++ software is supplied as source code and you can compile versions to run under Micrososoft
-Windows, Linux and the Mac OS.
+a USB port.  This package allows Go software to use Slamtec's driver.
 
-This package allows Go software to use Slamtec's driver.
+Slamtec supply their driver as C++ source code.  It runs under Micrososoft
+Windows, Linux and the Mac.  So far I've got it working under Linux with an Intel processor.
+I'm assuming that it will work on an ARM-based system such as a Raspberry Pi,
+but I haven't tried it yet.  I haven't tried the Mac version either.
 
-To get the Go driver working, you need to download the RPLidar SDK and build it.  You need a C++ compiler to build the SDK.  If you don't already have one, the free [GNU compiler](https://gcc.gnu.org/) will do the job.  See the Download links on the right of that page.  You will also need the [GNU Make tool](https://www.gnu.org/software/make/).
+Slamtec provide ready-built versions of the library and their applications for Windows.
+Unfortunately,
+the current version of the Slamtec library only compiles under Windows
+with an obsolete version of
+MS Visual Studio.
+I tried fixing this but gave up.
+The result is that my Go driver doesn't work under Windows.
+
+To get the Go driver working, you need to download the RPLidar SDK and build it.
+You need a C++ compiler to build the SDK.
+If you don't already have one, the free [GNU compiler](https://gcc.gnu.org/) will do the job.
+See the Download links on the right of that page.
+You will also need the free [GNU Make tool](https://www.gnu.org/software/make/).
 
 Download the RPLidar SDK from [here](https://www.slamtec.com/en/Support/).
 
 Unzip the distribution into a directory somewhere.  Unzipping it produces a directory rplidar.
 
-The implementation of the interface is in rplidar/sdk/sdk/src/rplidar_driver.cpp.  There are example applications in separate directories in rplidar/sdk/app.  The comments in those bits of code give a lot of information about the driver.
+The implementation of the interface is in rplidar/sdk/sdk/src/rplidar_driver.cpp.  There are example applications in rplidar/sdk/app.  The comments in those apps give a lot of useful clues about how the driver works.
 
 To build the library:
 
@@ -45,22 +81,23 @@ but it downloads the Go project.
 
 In your Go projects directory you now have github.com/goblimey/rplidar_sdk_go and within that a directory lib.
 
-Copy the C++ library that you built earlier into the lib directory.  
+Take the C++ library that you built earlier and copy it into the lib directory.  
 
 Now you can build the Go wrapper and the applications:
 
     $ go install github.com/goblimey/rplidar_sdk_go/simple_grabber_go
     $ go install github.com/goblimey/rplidar_sdk_go/ultra_simple_go
+    $ go install github.com/goblimey/rplidar_sdk_go/grabanddraw
 
 Run the applications something like this:
 
-    $ simple_grabber_go    # using default settings
+    $ grabanddraw -f scan.png   # grab a scan and draw it in scan.png.
 
-or
+or you can run it in verbose
 
-    $ simple_grabber_go -v /dev/ttyUSB0 115200
+    $ grabanddraw -v -f=scan.png -port=/dev/ttyUSB1 -speed=96000
 
-On Windows the default port is COM3.
+On Linux the default port is /dev/ttyUSB0 and the default speed is .
 
 The -v option turn on verbose mode, which producing lots of tracing messages.
 
@@ -68,68 +105,207 @@ The name of the USB port differs for different systems and depends on how many U
 On Linux your USB ports are /dev/ttyUSB0, /dev/ttyUSB1 and so on.  If your RPLidar device is the only USB device
 plugged in, it will be on /dev/ttyUSB0.
 
-See below for the godoc describing the driver calls.
+The default connection speed is 115200 baud, and that should match the device's speed.
+
+See below for the godoc describing the driver interface.
 
 
 The RPLidar Device
 ==================
 
-The default speed of the spinning platform is 720 revs per minute (12 per second).  The StartScan operations starts
-the device scanning. It scans continuously, collecting measurements until the controller issues a Stop operation.
-While the device is scanning, the GrabScanData operation grabs a full circle of measurements into the memory of the
-host computer.  The meaurements start at whatever angle the platform is pointing to when the scan grab starts, so they are usually
+The documentation for the A3 model is (here)[https://www.slamtec.com/en/Lidar/A3Spec].
+
+I used the A2 model for this work.
+The default speed of the spinning platform is 720 revs per minute (12 per second).
+A scan produces a list of measurements,
+each containing an angle in degrees and a distance in millimetres.
+This is the distance to the nearest object at that angle.
+The device has a data cable coming out and
+the front (0 degrees) is the point opposite that.
+The grabanddraw program shows the device pointing North.
+
+The control programs run on a host computer connected to the device via the USB cable.
+The driver library offers a set of operations
+The StartScan operations starts the device scanning.
+It scans continuously, collecting measurements until the controller issues a Stop operation.
+
+While the device is scanning,
+the GrabScanData operation pulls a full circle of measurements from the device.
+They start at whatever angle the platform is pointing to when the operation starts, so they are usually
 out of order.
-For example, if the scan yields 360 measurements starting at exactly 35 degrees, the list will contain
-the measurement for 35 degrees, 36 degrees, ... 359 degrees, 0 degrees, ... 34 degrees.
+For example, you might get 300 measurements starting at 35.6 degrees and incrementing by
+1.8 degrees each time - 35.6 degrees, 37.4 degrees and so on,
+rond to the start of the circle and then continuing round,
+filling in the values up to 33.8 degrees.
 
-Actually, the device I used to test the software typically returns about 300 measurements in each scan, with the angle
-starting at a value such 35.6 and incrementing by 360/300, which is 1.8 degrees.
+The device can't always see an object at every angle.
+When it can't get a measurement it returns an angle of 0 and a distance of 0
+to indicate an invalid value.
+The list of measurements is usually a mixture of valid and invalid values,
+something like this:
 
-The accuracy and maximum distance is different for each RPLidar model.
+      angle     distance
+        0           0           invalid
+        0           0           invalid
+       35.6      1025.3         valid
+       37.4      1023.6         valid
+       39.2      1022.1         valid
 
-The Driver interface defines the Go methods that implement the operations, plus a set of types that are used to return
-results and some constants used to interpret those data.  For example, the GrabScan operation produces a slice of
-RplidarResponseMeasurementNode objects, each of which contains an angle and a distance measurement plus other stuff such
-as check bits and a quality measure.  The angle measurement is in degrees.
+and so on.
 
-Angle and distance measurements are returned as fixed point integers.  The angle has 9 bits whole part, 6 bits fractional,
+The distance values are reported to fractions of a millimetre,
+but in reality the accuracy is much less than that.
+It's different for each RPLidar model.
+The more you pay, the more accuracy you get.
+My device claims to be accurate to about 50 millimetres,
+so the distance values shown above could just as easily be
+1025, 1025 and 1020.
+
+The missing angle values
+and the fact that the list is out of order can make it difficult to process the data.
+The GrabAndSortScanData operation corrects the angle parts of the measurements
+and sorts the list by angle.
+So in that list all the angle values are non-zero
+and the invalid measurements are indicated by just a distance of zero:
+
+       angle     distance
+         1.8         0          invalid
+         3.6         0          invalid
+         5.2       2053.6       valid
+
+
+The Driver
+==========
+
+In Go, the Driver interface defines the methods that implement the operations,
+plus a set of types used to return
+results and some constants used to interpret those data.
+For example, GrabScan() produces a slice of
+RplidarResponseMeasurementNode objects,
+each of which contains an angle and a distance measurement plus other stuff such
+as check bits and a quality measure.
+These data are packed together into integer values.
+
+Angle and distance measurements are returned as fixed point integers.
+The angle has 9 bits whole part, 6 bits fractional,
 so the fractional part is 0 to 63 and you divide the number by 64.0 to convert it to a floating point value.  The
 distance has 16 bits, 14 bits whole part, 2 bits fractional, so the fractional part is 0 to 3 and you divide it by 4.0 to
-get the float value.  The angle value shares space with some other data.  Methods are provided to extract the
+get the float value.  The angle value shares space with some other data.
+The driver software includes methods to extract the
 measurements as integers and floats, for example:
+
+   angle := measurementNode.AngleAsFloat64()
+
+extracts the angle value as a 64-bit float.
 
    angle := measurementNode.AngleAsFloat32()
 
-If the nearest object at a particular angle is outside the limit, the distance and angle returned are zero, meaning that
-this measurement is invalid.  Typically, the list of measurements will contain some valid and some invalid measurements.
-This makes processing the list interesting, especially as the recommended way to figure out the amount by which the angle
-is incremented as the device spins seems to be to find two adjacent valid measurements and take the difference.
+extracts it as a 32-bit float, which uses less space in memory.
 
-The GrabAndSortScanData runs the scan grab operation, but it sets the angle value in any invalid measurement as it would
-have been if the data was valid.  Then it sorts the list in ascending order of angle.  So in the data returned by that
-operation, the invalid nodes have non-zero angle values and zero distance values.  This is all done using the
-manufacturer's C++ code.  If you plan to use this feature, I advise reading that code.  I will only say that I wouldn't
-have written it that way myself.
+The RPLidar has a limited range,
+so the numbers involved are always small.
+If memory space is at a premium, you may want keep them in 32-bit form,
+but software such as the math library tend to work in 64-bit mode,
+which can lead to lots of type conversions:
 
-Most operations return an unsigned int, the operation result.  This can have various bits set to indicate different
-kinds of  error.  The IsOK and IsFail methods of the driver return true or false as appropriate and the drver defines
-constants such as ResultAlreadyDone that can be used to interpret the error.  Some errors may be recoverable, for
-example, if the result is a timeout, a retry may work.  Also, a long operation such as a scan grab may time out but
-still produce some data.  The OpResultToString method converts the operation result into a string that can be use in
+    radians := float64(measurement.AngleAsFloat32()) * math.Pi / 180
+    x = math.Cos(radians) * float64(distance)
+
+Most operations return an unsigned int, the operation result.
+This can have various bits set to indicate different
+kinds of  error.
+The IsOK and IsFail methods of the driver return true or false as appropriate.
+The driver provides constants such as
+ResultAlreadyDone that can be used to interpret the error.
+
+Some errors may be recoverable, for
+example, if the result is a timeout, a retry may work.
+Also, a long operation such as a scan grab may time out but
+still produce some data.
+The OpResultToString method converts the operation result into a string that can be use in
 an error message.
 
-The example applications show how to connect to the device, run a health check, perform a scan and extract the results.
+The example applications show how to connect to the device, run a health check,
+perform a scan and extract the results.
+
+
+Some Experiments
+=================
+
+To test the accuracy of the sensor I ran some scans in an empty space with hard walls.
+
+I set the sensor at 3m from the wall and ran a scan.
+The device claims distance accuracy of <1%.
+At this distance that's 30mm.
+It reported the distance to the wall as 
+2984m, so it was 16m out,
+well within spec.
+
+Some lidar devces have a fairly wide beam.
+For an application like collision detection
+this is useful,
+but it means that your scan is not very precise.
+If it detects an object at zero degrees,
+is it directly opposite the sensor,
+a little above it or a little below it?
+With a wide scan you don't know.
+
+With the sensor above the floor I built a stack of bricks
+2700mm away - 300mm from the wall.
+With the sensor at 340 mm above the floor and the top of the stack at 280 mm
+the scanner does not see the stack.
+If I raise the stack to320mm,
+the scanner sees it (scan2).
+
+So the scanner has a fairly tight beam.
+
+The tight beam has some disadvantages -
+narrow objects can be missed altogether.
+The sensor produced 315 scans so the measurements were about 1.2 degrees apart.
+At 3000mm that gives a gap of about 60mm between each measurement.
+A narrow object falling between two scans will not be detected.
+Sure enough I found that my device only reliably detected objects 70mm wide or wider.
+
+The scanner claims to work with objects as close as 150mm
+and at that distance the measurements will be much more accurate.
+If you were to mount the scanner on a frame
+and move it across a solid object,
+take lots of scans
+and merge them together,
+you could produce a fairly accurate model of the object.
+
+I'm interested in terrain modelling -
+mounting a lidar sensor in a drone and running it over a piece
+of ground to get an accurate map of the surface.
+That requires extra equipment to tell where the drone is and in which directon it's pointing
+when each scan is taken.
+Assuming that,
+it looks as if the RPLidar
+is accurate enough to handle this task.
+The only problem is,
+how long will it last?
+Drones tend to crash and any device mounted on one has to be fairly robust.
+I have my doubts about that,
+but it's OK for a proof of concept.
+
 
 Implementation Details
 =====================
 
-Go code cannot call C++ code directly.  It can call a C function using the cgo mechanism, and that C function can call C++
+Go code can't call C++ code directly.
+It can call a C function using the cgo mechanism, and that C function can call C++
 methods.  However, the C and C++ code has to fit certain rules for cgo to work and the RPLiadr C++ driver code defeats it.  To get around
 this problem I created an extra layer of C++, a proxy driver that provides a simpler interface that cgo can handle.  The
-end result is this Go interface plus a concrete type that implements it and provides a set of Go methods each of which
-calls a C interface function which calls a method in the C++ proxy, which calls a method in the original driver.  
+end result is the Driver interface plus a concrete type that implements it.
+Each method in the implementation
+calls a C interface function which calls a method in the C++ proxy,
+which calls a method in the Slamtec driver.
+This seems a little excessive, but remember that
+your application is talking down a wire
+to a physical device with a spinning platform.
+The overhead of a few extra method calls is insignificant.
 
-The usb_driver.go file contains some magic to glue all this stuff together:
+The usb_driver.go file contains some magic to glue the Go and C++ components together:
 
     // #cgo CFLAGS: -I${SRCDIR}/../include -DDEBUG -g
     // #cgo CXXFLAGS: -I${SRCDIR}/../include -DDEBUG -g
@@ -147,12 +323,15 @@ Behind the scenes, the go command runs the C++ compiler, which can compile both 
 The #cgo comment lines specify directives for the C++ compiler.
 
 ${SRCDIR} defines the current directory.
--I says where to find the header files. 
 
-The -l option specifies libraries.  The compiler knows where to find the standard libraries but it needs to be told where to find the Slamtech library that you built and copied..  -L says which directory to find the library.  -l defines the library itself (-lx means the file libx.a).  
+-I says where to find the header files.
+
+The -l option specifies libraries.
+The compiler knows where to find the standard libraries but
+it needs to be told where to find the Slamtec library that you built and copied..  -L says which directory to find the library.  -l defines the library itself (-lx means the file libx.a).
 
 -DDEBUG turns on debugging code.  This will create the library in a different directory.  Actually
-the libray contains very little debugging code, so enabling debug doesn't do very much.
+the library contains very little debugging code, so enabling debug doesn't do very much.
 
 -g tells the compiler to include symbol table data so that error messages can contain source code line numbers.
 The symbol table is also used by the debugger.
@@ -165,22 +344,34 @@ The "C" import allows the Go code to refer to the C code, for example:
 
 creates a variable driver which is of C type RPDriver.
 That's the C interface to the C++ Driver class.
-Given this, a Go method can call a C++ method like so:
+Given that declaration, a Go method can call a C++ method like so:
 
     func (d ConcreteRPlidarDriver) StartMotor() {
-	C.RPDriverStartMotor(d.driver)
+	    C.RPDriverStartMotor(d.driver)
     }
 
-The cgo tool has a nasty habit of occasionally rewriting the original source code, including removing all comments.  For this reason, the Go code that uses cgo, usb_driver.go, does not contain any comments.  All comments are kept in the Driver interface driver.go.
+The cgo tool has a nasty habit of occasionally rewriting the original source code,
+including removing all comments.
+For this reason, I avoid putting comments in any code that's processed by cgo,
+in this case usb_driver.go.
+I put them in the interface instead.
 
 An alternative approach to implementing this Go driver would be to mimic the C++ driver line for line,
-but whoever did that would need to maintain it as new versons of the C++ driver are issued.  As long as any
-future version of the C++ driver respects the manufacturer's own interface, 
+but whoever did that would need to maintain it as new versons of the C++ driver are issued.
+As long as Slamtec respect their own interface in
+any future version of the C++ driver,
 this wrapper should work with it.
 
-For more details of Go calling C++ code via a C interface, read [the manual](https://golang.org/cmd/cgo/).  The Go project github.com/burke/howto-go-with-cpp provides a simple worked example.
+For more details of Go calling C++ code via a C interface, read [the manual](https://golang.org/cmd/cgo/).
+[This Go project](github.com/burke/howto-go-with-cpp) provides a simple worked example.
 
-I haven't written any C or C++ software for over twenty years so my implementation of the C++ proxy could probably be improved.
+I used [this library](https://github.com/fogleman/gg) to handle the graphics in the
+grabanddraw program.
+
+I had to write some layers of C and C++ for this project.
+I haven't used those languages for over twenty years
+so those bits
+could probably be improved.
 
 
 ```
@@ -232,13 +423,16 @@ const (
     // RplidarResponseMeasurementExpAngleMask masks off the check bit and inverse check bit of the AngleQ6CheckBit field
     // of an RplidarResponseMeasurementNode.
     RplidarResponseMeasurementExpAngleMask = (0x3)
-    // RplidarResponseMeasurementExpDistanceMask is used to extract the whole part of the distance as a scaled integer with
+    // RplidarResponseMeasurementExpDistanceMask is used to extract the whole part of the distance as a scaled integer w
+ith
     RplidarResponseMeasurementExpDistanceMask = (0xFC)
     RplidarResponseMeasurementExpSync1        = 0xA
     RplidarResponseMeasurementExpSync2        = 0x5
     RplidarResponseMeasurementExpSyncBit      = (0x1 << 15)
-    // RplidarResponseMeasurementAngleConversion is used to convert the angle component of the AngleQ6CheckbBit field of an
-    // RplidarResponseMeasurementNodehe to a float.  The angle is a fixed point value with 15 bits, 9 bits whole part, 6 bits
+    // RplidarResponseMeasurementAngleConversion is used to convert the angle component of the AngleQ6CheckbBit field of
+ an
+    // RplidarResponseMeasurementNodehe to a float.  The angle is a fixed point value with 15 bits, 9 bits whole part, 6
+ bits
     // fractional part.
     RplidarResponseMeasurementAngleConversion = 64.0
 
@@ -370,12 +564,14 @@ type Driver interface {
 
     // StartScan asks the RPLIDAR core system to enter the scan mode(Normal/Express, Express mode is 4k mode).
     // A background thread in the C++ layer will be created by the RPLIDAR driver to fetch the scan data continuously.
-    // User Application can use the grabScanData() interface to retrieved the scan data cached previous by this background
+    // User Application can use the grabScanData() interface to retrieved the scan data cached previous by this backgrou
+nd
     // thread.
     //
     // force - force the core system to output scan data whether the scanning motor is rotating or not.
     //
-    // autoExpressMode - force the core system to try express mode first, if the system does not support express mode, it
+    // autoExpressMode - force the core system to try express mode first, if the system does not support express mode, i
+t
     // will use normal mode.
     //
     // Return opResult.
@@ -383,7 +579,8 @@ type Driver interface {
 
     // StartScanNormal starts a scan running in normal mode.
     // A background thread in the C++ layer will be created by the RPLIDAR driver to fetch the scan data continuously.
-    // User Application can use the grabScanData() interface to retrieved the scan data cached previous by this background
+    // User Application can use the grabScanData() interface to retrieved the scan data cached previous by this backgrou
+nd
     // thread.
     // The operation timeout for the serial port communication is in milliseconds.  If the timeout is zero, the
     // default of 2000 milliseconds is used.
@@ -391,47 +588,59 @@ type Driver interface {
 
     // StartScanExpress starts a scan in express mode (assuming that the hardware supports express mode).
     // A background thread in the C++ layer will be created by the RPLIDAR driver to fetch the scan data continuously.
-    // User Application can use the grabScanData() interface to retrieved the scan data cached previous by this background
+    // User Application can use the grabScanData() interface to retrieved the scan data cached previous by this backgrou
+nd
     // thread.
     // The operation timeout for the serial port communication is in milliseconds.  If the timeout is zero, the
     // default of 2000 milliseconds is used.
     StartScanExpress(fixedAngle bool, timeout uint) uint
 
-    // Stop ask the RPLIDAR core system to stop the current scan operation and enter idle state. The C++ background thread
+    // Stop ask the RPLIDAR core system to stop the current scan operation and enter idle state. The C++ background thre
+ad
     // is also terminated.
     // The operation timeout for the serial port communication is in milliseconds.  If the timeout is zero, the
     // default of 2000 milliseconds is used.
     Stop(timeout uint) uint
 
-    // GrabScanData starts a C++ background thread which waits and grabs a complete 0-360 degree scan data previously received.
+    // GrabScanData starts a C++ background thread which waits and grabs a complete 0-360 degree scan data previously re
+ceived.
     // The grabbed scan data returned by this interface always has the following charactistics:
     //
-    // 1) The first node of the grabbed data array (nodebuffer[0]) must be the first sample of a scan, i.e. the start_bit == 1
+    // 1) The first node of the grabbed data array (nodebuffer[0]) must be the first sample of a scan, i.e. the start_bi
+t == 1
     // 2) All data nodes belong to exactly ONE complete 360-degrees's scan
     // 3) There may be less than the requested number of nodes.
-    // 4) Valid nodes have a distance value greater than zero.  If the distance value is not zero, the other values can't be
+    // 4) Valid nodes have a distance value greater than zero.  If the distance value is not zero, the other values can'
+t be
     // trusted.
     // 5) The data may include a list of invalid nodes at the beginning or at the end.
-    // 6) The angle data in one scan may not be ascending. (One teason is that it may start part-way round the circle, so you
+    // 6) The angle data in one scan may not be ascending. (One teason is that it may start part-way round the circle, s
+o you
     // may get 10-360 followed by 0-9.)
     //
-    // You can use the method GrabAndSortScanData to get the nodes in ascending order of angle and correct the angle values in
+    // You can use the method GrabAndSortScanData to get the nodes in ascending order of angle and correct the angle val
+ues in
     // the invalid nodes.
     //
     // scans: The number of measurements wanted.
     //
-    // timeout: Max duration allowed to wait for a complete scan data.  Nothing will be stored to the nodebuffer if a complete
-    // 360-degrees' scan data is not ready in time.   The caller application can set the timeout value to Zero(0) to make this
+    // timeout: Max duration allowed to wait for a complete scan data.  Nothing will be stored to the nodebuffer if a co
+mplete
+    // 360-degrees' scan data is not ready in time.   The caller application can set the timeout value to Zero(0) to mak
+e this
     // interface always returns immediately to achieve non-block operation.
     //
-    // The interface will return ResultOperationTimeout to indicate that no complete 360-degrees' scan could be retrieved
+    // The interface will return ResultOperationTimeout to indicate that no complete 360-degrees' scan could be retrieve
+d
     // within the given timeout duration.
     GrabScanData(scans uint, timeout uint) (uint, []RplidarResponseMeasurementNode)
 
-    // GrabAndSortScanData makes the same call to the C++ layer as GrabScanData and then calls ascendScanData to sort the
+    // GrabAndSortScanData makes the same call to the C++ layer as GrabScanData and then calls ascendScanData to sort th
+e
     // measurement nodes in ascending order of angle.
     GrabAndSortScanData(scans uint, timeout uint) (uint, []RplidarResponseMeasurementNode)
 }
+    Driver is a wrapper around the C++ RPLidar driver.
 
 type HealthInfo struct {
     Status    uint8
@@ -454,7 +663,11 @@ type RplidarResponseMeasurementNode struct {
 
 func (mn RplidarResponseMeasurementNode) AngleAsFloat32() float32
     AngleAsFloat32 extracts the angle from the measurement node and returns
-    it as a float. The angle will be in the range 0.0 to 511.99
+    it as a float32. The angle is in degrees and goes anticlockwise.
+
+func (mn RplidarResponseMeasurementNode) AngleAsFloat64() float64
+    AngleAsFloat64 extracts the angle from the measurement node and returns
+    it as a float64. The angle is in degrees and goes anticlockwise.
 
 func (mn RplidarResponseMeasurementNode) AngleAsInt() uint16
     AngleAsInt extracts the angle from the measurement node as a fixed point
@@ -464,16 +677,35 @@ func (mn RplidarResponseMeasurementNode) CheckBit() bool
     CheckBit extract the check bit from the measurement node.
 
 func (mn RplidarResponseMeasurementNode) DistanceAsFloat32() float32
-    AngleAsFloat32 extracts the angle from the measurement node and returns
-    it as a float. The angle will be in the range 0.0 to 511.99
+    DistanceAsFloat32 extracts the angle from the measurement node and
+    returns it as a float32. The distance is in millimetres, although it's
+    less accurate than that, depending on the device.
+
+func (mn RplidarResponseMeasurementNode) DistanceAsFloat64() float64
+    DistanceAsFloat64 extracts the angle from the measurement node and
+    returns it as a float64. The distance is in millimetres, although it's
+    less accurate than that, depending on the device.
 
 func (mn RplidarResponseMeasurementNode) DistanceAsInt() uint16
-    AngleAsInt extracts the distance from the measurement node as a fixed
-    point integer with a 14 bit whole part and 2 bit fractional part.
+    DistanceAsInt extracts the distance from the measurement node as a fixed
+    point integer with a 14 bit whole part and 2 bit fractional part. The
+    distance is in millimetres, although it's less accurate than that,
+    depending on the device.
+
+func (mn RplidarResponseMeasurementNode) EndPoint() (x, y float64)
+    EndPoint gets the x and y coordinates of the endpoint of the
+    measurement.
+
+func (mn RplidarResponseMeasurementNode) Invalid() bool
+    Invalid is true if the distance value is 0 or less. (Actually in a real
+    measurement it will never be less.)
 
 func (mn RplidarResponseMeasurementNode) Quality() uint16
     Quality extracts the quality value from the measurement node.
 
 func (mn RplidarResponseMeasurementNode) SyncBit() bool
     SyncBit extract the sync bit from the measurement node.
+
+func (mn RplidarResponseMeasurementNode) Valid() bool
+    Valid is true if the distance value is greater than 0
 ```

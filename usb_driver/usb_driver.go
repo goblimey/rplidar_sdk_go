@@ -37,6 +37,7 @@ func MakeDriver(verbose bool) driver.Driver {
 	v := 0
 	if verbose {
 		v = -1
+		driver.SetVerbose(true)
 	}
 	cdriver := C.ProxyDriverInit(C.int(v))
 	driver.SetDriver(cdriver)
@@ -75,10 +76,10 @@ func (d USBDriver) Connect(port string, baudRate uint, flag uint) uint {
 	if d.verbose {
 		log.Printf("%s Connect(%s, %d, %d)", moduleName, port, baudRate, flag)
 	}
-	result := uint(C.ProxyDriverConnect(_cgoCheckPointer(C.ProxyDriver(d.driver)).(C.ProxyDriver), C.CString(port), C.uint(baudRate), C.uint(flag)))
+	result := uint(C.ProxyDriverConnect(d.driver, C.CString(port), C.uint(baudRate), C.uint(flag)))
 	if result != 0 {
 		if d.verbose {
-			log.Printf("%s Connect(): failed %d", moduleName, driver.OpResultToString(result))
+			log.Printf("%s Connect(): failed %s", moduleName, driver.OpResultToString(result))
 		}
 		if d.verbose {
 			log.Printf("%s Connect(): success", moduleName)
@@ -101,7 +102,7 @@ func (d USBDriver) IsConnected() bool {
 	if d.verbose {
 		log.Printf("%s IsConnected()", moduleName)
 	}
-	result := int(C.ProxyDriverIsConnected(d.driver)) != 0
+	result := uint(C.ProxyDriverIsConnected(d.driver)) != 0
 	if d.verbose {
 		log.Printf("%s IsConnected() returning %v", moduleName, result)
 	}
@@ -214,8 +215,7 @@ func (d USBDriver) StartMotor() uint {
 		log.Printf("%s StartMotor()", moduleName)
 	}
 
-	cOpResult := C.ProxyDriverStartMotor(_cgoCheckPointer(C.ProxyDriver(d.driver)).(C.ProxyDriver))
-	opResult := uint(cOpResult)
+	opResult := uint(C.ProxyDriverStartMotor(d.driver))
 	if driver.IsFail(opResult) {
 		if d.verbose {
 			log.Printf("%s StartMotor(): failed", moduleName)
@@ -393,7 +393,7 @@ func (d USBDriver) GrabScanData(scans uint, timeout uint) (uint, []driver.Rplida
 	}
 	var cscans = C.uint(scans)
 	if d.verbose {
-		log.Printf("%s GrabScanData(): got %d scans\n", moduleName, uint(cscans))
+		log.Printf("%s GrabScanData(): requesting %d scans\n", moduleName, scans)
 	}
 
 	var cresults *C.rplidar_scan_results_unpacked = C.ProxyDriverGrabScanData(d.driver, cscans, C.uint(timeout))
@@ -426,6 +426,7 @@ func (d USBDriver) GrabScanData(scans uint, timeout uint) (uint, []driver.Rplida
 	return opResult, nodes
 }
 
+// GrabAndSortScanData exports the scan data sorted by angle.
 func (d USBDriver) GrabAndSortScanData(scans uint, timeout uint) (uint, []driver.RplidarResponseMeasurementNode) {
 	if d.verbose {
 		log.Printf("%s GrabAndSortScanData()", moduleName)
@@ -451,6 +452,18 @@ func (d USBDriver) GrabAndSortScanData(scans uint, timeout uint) (uint, []driver
 		results[i].AngleQ6Checkbit = uint16(cnode.angle_q6_checkbit)
 		results[i].SyncQuality = uint8(cnode.sync_quality)
 		results[i].DistanceQ2 = uint16(cnode.distance_q2)
+		if d.verbose {
+			s := "F"
+			if results[i].SyncBit() {
+				s = "T"
+			}
+			c := "F"
+			if results[i].CheckBit() {
+				c = "T"
+			}
+			log.Printf("%s GrabAndSortScanData(): S %s C %s Q %d A %4.1f D %6.1f\n",
+				moduleName, s, c, results[i].Quality(), results[i].AngleAsFloat32(), results[i].DistanceAsFloat32())
+		}
 	}
 	// Free the space malloced by the C++ proxy
 	C.ProxyDriverFreeRplidarScanResultsUnpacked(d.driver, cresults)

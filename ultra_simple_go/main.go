@@ -64,7 +64,7 @@ func main() {
 
 	time.Sleep(time.Second * 5)
 
-	opResult, sortedData := usbDriver.GrabAndSortScanData(720, 1000)
+	opResult, sortedData := usbDriver.GrabAndSortScanData(720, 10000)
 
 	if driver.IsFail(opResult) {
 		log.Printf("failed to grab data - %s", driver.OpResultToString(opResult))

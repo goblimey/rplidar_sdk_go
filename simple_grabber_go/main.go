@@ -94,7 +94,7 @@ func capture(usbDriver driver.Driver) (uint, []driver.RplidarResponseMeasurement
 
 	fmt.Printf("waiting for data...\n")
 
-	opResult, nodes := usbDriver.GrabAndSortScanData(360*2, 0)
+	opResult, nodes := usbDriver.GrabAndSortScanData(360*2, 10000)
 	// A timeout may still produce some nodes
 	if driver.IsFail(opResult) && opResult != driver.ResultOperationTimeout {
 		fmt.Printf("error: %s\n", driver.OpResultToString(opResult))

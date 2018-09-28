@@ -38,6 +38,10 @@ package driver
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 // EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import (
+	"math"
+)
+
 const (
 	// operation status values
 	ResultOK                    = 0
@@ -187,24 +191,72 @@ func (mn RplidarResponseMeasurementNode) AngleAsInt() uint16 {
 	return uint16(mn.AngleQ6Checkbit >> RplidarResponseMeasurementAngleShift)
 }
 
-// AngleAsFloat32 extracts the angle from the measurement node and returns it as a float.
-// The angle will be in the range 0.0 to 511.99
+// AngleAsFloat32 extracts the angle from the measurement node and returns it as a float32.
+// The angle is in degrees and goes anticlockwise.
 func (mn RplidarResponseMeasurementNode) AngleAsFloat32() float32 {
 	return float32(mn.AngleQ6Checkbit>>RplidarResponseMeasurementAngleShift) / 64.0
 }
 
-// AngleAsInt extracts the distance from the measurement node as a fixed point integer with
-// a 14 bit whole part and 2 bit fractional part.
+// AngleAsFloat64 extracts the angle from the measurement node and returns it as a float64.
+// The angle is in degrees and goes anticlockwise.
+func (mn RplidarResponseMeasurementNode) AngleAsFloat64() float64 {
+	return float64(mn.AngleQ6Checkbit>>RplidarResponseMeasurementAngleShift) / 64.0
+}
+
+// DistanceAsInt extracts the distance from the measurement node as a fixed point integer with
+// a 14 bit whole part and 2 bit fractional part.  The distance is in millimetres, although it's
+// less accurate than that, depending on the device.
 func (mn RplidarResponseMeasurementNode) DistanceAsInt() uint16 {
 	return uint16(mn.DistanceQ2)
 }
 
-// AngleAsFloat32 extracts the angle from the measurement node and returns it as a float.
-// The angle will be in the range 0.0 to 511.99
+// DistanceAsFloat32 extracts the angle from the measurement node and returns it as a float32.
+// The distance is in millimetres, although it's less accurate than that, depending on the device.
 func (mn RplidarResponseMeasurementNode) DistanceAsFloat32() float32 {
 	return float32(mn.DistanceQ2) / 4.0
 }
 
+// DistanceAsFloat64 extracts the angle from the measurement node and returns it as a float64.
+// The distance is in millimetres, although it's less accurate than that, depending on the device.
+func (mn RplidarResponseMeasurementNode) DistanceAsFloat64() float64 {
+	return float64(mn.DistanceQ2) / 4.0
+}
+
+// Valid is true if the distance value is greater than 0
+func (mn RplidarResponseMeasurementNode) Valid() bool {
+	return mn.DistanceAsFloat32() > 0
+}
+
+// Invalid is true if the distance value is 0 or less.  (Actually in a real measurement it will never be less.)
+func (mn RplidarResponseMeasurementNode) Invalid() bool {
+	return mn.DistanceAsFloat32() <= 0
+}
+
+// EndPoint gets the x and y coordinates of the endpoint of the measurement.
+func (mn RplidarResponseMeasurementNode) EndPoint() (x, y float64) {
+	// The RPLidar rotates clockwise and produces a list of measurements with angles running from 0 to 359.999.
+	// If the device is at the origin and pointing along the x axis, the angles are like this:
+	//     \  |  /
+	//      \ | /
+	//   210 \|/ 300
+	//   -------------->
+	//   120 /|\ 30
+	//      / | \
+	//     /  |  \
+	//
+	// In the math package, the angles are in radians and run anticlockwise, so we have to invert the angle
+	// and convert it to Radians.
+	//
+	// To draw the device pointing North, rotate the picture by 90 degress anticlockwise.
+
+	distance := mn.DistanceAsFloat64()
+	radians := mn.AngleAsFloat64() * math.Pi / 180 * -1
+	x = math.Cos(radians) * distance
+	y = math.Sin(radians) * distance
+	return x, y
+}
+
+// Driver is a wrapper around the C++ RPLidar driver.
 type Driver interface {
 	// DestroyDriver cleans up the data created by making the Driver.  Whenever a drier is made there should be
 	// a deferred call to DestroyDriver to clear the resources that were allocated.
