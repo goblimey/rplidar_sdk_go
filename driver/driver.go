@@ -5,7 +5,7 @@ package driver
 // and return a list of angle and distance values. The original purpose was to produce a floor plan of the room in which
 // a robot vacuum cleaner was running.
 //
-// For instructuons on building and using the driver, see https://www.github.com/goblimey/rplidar_sdk_go.
+// For instructions on building and using the driver, see https://www.github.com/goblimey/rplidar_sdk_go.
 //
 // This is the copyright notice for the underlying C++ driver:
 //
