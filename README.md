@@ -2,7 +2,7 @@
 A Go wrapper for the RPLidar SDK
 
 This project defines a Go driver for the Slamtec RPLIDAR device.
-This driver is a Go wrapper around a C++ driver
+It wraps a C++ driver
 supplied by Slamtec.
 
 See the end of this page for detailed Go docs.
@@ -20,46 +20,48 @@ and merging them,
 an accurate view of the room that it's working in
 can be produced.
 
-The picture rplidar.jpg
+More advanced version of the scanner
+are now used for all sorts of purposes including solid modelling
+and robot vision.
+
+The scanner connects to a host computer via USB so it's very easy to get it working.
+
+
+Slamtec's C++ driver is open source and
+can be used under Windows, Linux or the Mac.
+This package allows Go software to use Slamtec's driver,
+but so far I've only got it working under Linux on an Intel processor.
+my attempts to get it working under Windows failed due to incompatible tools.
+I'm assuming that it will work on an ARM-based system such as a Raspberry Pi,
+but I haven't tried it yet.
+I haven't tried the Mac version either.
+
+The photo rplidar.jpg
 shows the RPLidar working, driven by my grabanddraw program.
-The resulting floor plan is in 
-scan.png.
+The resulting floor plan is in scan.png.
 I ran the program in verbose mode and the tracing output is in scan.txt.
 
+RPLidar is a range of scanners.
 Different models produce results of different accuracy.
 Currently the most accurate (and most expensive)
 is the A3 which claims a range 0f 150mm - 25m,
 angular resolution of 0.3 degrees
 and an accuracy in the distance measurement of less than 1%.
-I ran some fairly simple tests and verified this.
-See below for more details.
 
-Slamtec publish the RPLidar SDK, a C++ library of software to control the RPLidar.
-The C++ driver is defined by an interface and Slamtec supplies an
-implementation which runs on a host computer and connects to the RPLidar device using a serial connection via
-a USB port.  This package allows Go software to use Slamtec's driver.
+I have the A2 model.
+I ran some fairly simple tests to check the accuracy of my scanner
+and wrote them up
+[here](https://groups.google.com/forum/#!topic/lidar-mapping/scWmwVFyKMU).
 
-Slamtec supply their driver as C++ source code.  It runs under Micrososoft
-Windows, Linux and the Mac.  So far I've got it working under Linux with an Intel processor.
-I'm assuming that it will work on an ARM-based system such as a Raspberry Pi,
-but I haven't tried it yet.  I haven't tried the Mac version either.
-
-Slamtec provide ready-built versions of the library and their applications for Windows, Linux and the Mac.
-Unfortunately,
-under Windows
-the current version of the Slamtec library will only compile using
-an obsolete version of
-MS Visual Studio.
-The result is that my Go wrapper will only work under Windows,
-if you have that particular version of Visual studio.
-Slamtec plan to fix this in a future release.
-
-To get the Go driver working in other environments, you need to download the RPLidar SDK and build it.
+To get the Go driver working, you need to download the RPLidar SDK and build it.
 You need a C++ compiler to do that.
 If you don't already have one, the free [GNU compiler](https://gcc.gnu.org/) should do the job.
 See the Download links on the right of that page.
 You will also need the free [GNU Make tool](https://www.gnu.org/software/make/)
 if you don't have one of those.
+The Windows version requires a particular version of Visual Studio.
+ (VS-2014 with Service Pack 2, from memory.)
+ Best of luck getting that to work.
 
 Download the RPLidar SDK from [here](https://www.slamtec.com/en/Support/).
 
@@ -81,8 +83,7 @@ Next, download the Go wrapper:
 
     $ go get github.com/goblimey/rplidar_sdk_go/simple_grabber_go
 
-THIS WILL THROW AN ERROR because it needs a copy of the library in the right place before it can build the wrapper,
-but it downloads the Go project.
+THIS WILL THROW AN ERROR because it needs a copy of the library in the right place before it can build the wrapper.
 
 In your Go projects directory you now have github.com/goblimey/rplidar_sdk_go and within that a directory lib.
 
@@ -98,11 +99,18 @@ Run the applications something like this:
 
     $ grabanddraw -f scan.png   # grab a scan and draw it in scan.png.
 
-or you can run it in verbose
+or you can run it in verbose mode and override some of te default options:
 
     $ grabanddraw -v -f=scan.png -port=/dev/ttyUSB1 -speed=96000
 
-On Linux the default port is /dev/ttyUSB0 and the default speed is .
+On Linux the default port is /dev/ttyUSB0.
+
+The speed value defines the baud rate which the host computer uses
+to talk across the USB connection.
+The default is 115200 baud,
+which matches the speed that the scanner uses by default.
+Both ends must use the same speed.
+If they disagree, communication will fail.
 
 The -v option turn on verbose mode, which producing lots of tracing messages.
 
@@ -110,7 +118,13 @@ The name of the USB port differs for different systems and depends on how many U
 On Linux your USB ports are /dev/ttyUSB0, /dev/ttyUSB1 and so on.  If your RPLidar device is the only USB device
 plugged in, it will be on /dev/ttyUSB0.
 
-The default connection speed is 115200 baud, and that should match the device's speed.
+The Go examples are based on Slamtec's C++ examples.
+The simplest is ultra_simple_go.
+It starts the scanner, grabs a scan and displays the scan data on the standard output channel.
+The grabanddraw program is a bit more useful.
+It grabs a scan and draws the resulting floor plan
+as a .png file.
+It contains a bit of useful geometry work.
 
 See below for the godoc describing the driver interface.
 
@@ -130,6 +144,7 @@ each containing an angle in degrees and a distance in millimetres.
 This is the distance to the nearest object at that angle.
 The device has a data cable coming out and
 the front (0 degrees) is the point opposite that.
+
 When the grabanddraw program runs a scan, it draws it with the device pointing upwards.
 
 The control software runs on a host computer connected to the scanner via a USB cable.
@@ -137,26 +152,26 @@ The StartScan operations starts the device scanning.
 It scans continuously, collecting measurements until the controller issues a Stop operation.
 
 If the GrabScanData operation is run while the device is scanning,
-it pulls a full circle of measurements from the device.
-They start at whatever angle the platform is pointing to when the operation starts.
-For example, you might get 300 measurements starting at 35.6 degrees and incrementing by
+it grabs a full circle of measurements from the device
+starting at whatever angle the platform is pointing.
+So you might get 300 measurements starting at 35.6 degrees and incrementing by
 1.8 degrees each time,
-round to the end of the circle and then continuing from the beginning,
+round to 360 degrees and then continuing,
 up to 33.8 degrees.
 
-The device can't always see an object at every angle.
+The scanner may not see an object at every angle.
 When it can't get a measurement it returns an angle of zero and a distance of zero
 to indicate an invalid value.
 The list of measurements is usually a mixture of valid and invalid values,
 something like this:
-
+```
       angle     distance
         0           0           invalid
         0           0           invalid
        35.6      1025.3         valid
        37.4      1023.6         valid
        39.2      1022.1         valid
-
+```
 and so on.
 
 The distance values are reported to fractions of a millimetre,
@@ -173,36 +188,45 @@ The GrabAndSortScanData operation corrects the angle parts of the measurements
 and sorts the list by angle.
 So in that list all the angle values are non-zero
 and the invalid measurements are indicated by just a distance of zero:
-
-       angle     distance
-         1.8         0          invalid
-         3.6         0          invalid
-         5.2       2053.6       valid
-
+```
+      angle     distance
+       32.0         0           invalid
+       33.8         0           invalid
+       35.6      1025.3         valid
+       37.4      1023.6         valid
+       39.2      1022.1         valid
+```
 
 The Driver
 ==========
 
-In the Golayer,
-the Driver interface defines the methods that implement the operations,
-plus a set of types used to return
-results and some constants used to interpret those data.
-For example, GrabScan() produces a slice of
+In the Go layer,
+the Driver interface defines a set of types used to return
+results,
+some constants used to interpret those data
+and the methods that implement the operations.
+
+For example, GrabScan() grabs scan dataand return it as a slice of
 RplidarResponseMeasurementNode objects,
 each of which contains an angle and a distance measurement plus other stuff such
 as check bits and a quality measure.
 These data are packed together into integer values.
 
 Angle and distance measurements are returned as fixed point integers.
-The angle has 9 bits whole part, 6 bits fractional,
-so the fractional part is 0 to 63 and you divide the number
-by 64.0 to convert it to a floating point value.
-The
-distance has 16 bits, 14 bits whole part, 2 bits fractional,
-so the fractional part is 0 to 3 and you divide it by 4.0 to
-get the float value.  The angle value shares space with some other data.
-The driver software includes methods to extract the
-measurements as integers and floats, for example:
+The angle shares space with other values
+so you have to extract it using bit shifting and masking.
+It has 9 bits whole part, 6 bits fractional,
+so the fractional part is 0 to 63.
+You can extract these parts in the same way,
+or just convert the value to a floating point number
+by dividing it by 64.0.
+
+The distance value uses 16 bits, 14 bits whole part, 2 bits fractional,
+so the fractional part is 0 to 3.
+Dividing it by 4.0
+gives the float value.
+
+The Go wrapper includes methods to do all this, for example:
 
    angle := measurementNode.AngleAsFloat64()
 
@@ -210,50 +234,58 @@ extracts the angle value as a 64-bit float.
 
    angle := measurementNode.AngleAsFloat32()
 
-extracts it as a 32-bit float, which uses less space in memory.
+extracts it as a 32-bit float.
 
 The RPLidar has a limited range,
 so the numbers involved are always small.
 If memory space is at a premium, you may want keep them in 32-bit form,
 but software such as the math library tend to work in 64-bit mode,
-which can lead to lots of type conversions:
+which leads to lots of type conversions:
 
     radians := float64(measurement.AngleAsFloat32()) * math.Pi / 180
     x = math.Cos(radians) * float64(distance)
 
 Most operations return an unsigned int, the operation result.
 This can have various bits set to indicate different
-kinds of  error.
+kinds of error.
 The IsOK and IsFail methods of the driver return true or false as appropriate.
 The driver provides constants such as
-ResultAlreadyDone that can be used to interpret the error.
+ResultAlreadyDone that can be used to interpret the operation result.
+See the example programs for usage.
 
-Some errors may be recoverable, for
-example, if the result is a timeout, a retry may work.
-Also, a long operation such as a scan grab may time out but
-still produce some data.
 The OpResultToString method converts the operation result into a string that can be use in
 an error message.
 
-The example applications show how to connect to the device, run a health check,
-perform a scan and extract the results.
+Some errors may be recoverable, for
+example, if the operation result is a timeout, a retry may work.
+
+A long operation such as a scan grab may time out but
+still produce some data.
 
 
 Implementation Details
 =====================
 
 Go code can't call C++ code directly.
-It can call a C function using the cgo mechanism, and that C function can call C++
-methods.  However, the C and C++ code has to fit certain rules for cgo to work and the RPLiadr C++ driver code defeats it.  To get around
-this problem I created an extra layer of C++, a proxy driver that provides a simpler interface that cgo can handle.  The
-end result is the Driver interface plus a concrete type that implements it.
-Each method in the implementation
-calls a C interface function which calls a method in the C++ proxy,
+It can call a C function using the cgo mechanism, which can call a C++
+method.
+For cgo to work, the C++ code has to follow certain rules.
+The code in the RPLidar C++ driver code doesn't,
+so Go code can't call it directly.
+I had to create an extra layer of C++, a proxy driver that provides a simpler interface that cgo can handle.
+
+The end result is the Driver interface
+and a concrete type USBDriver that implements it.
+Each method of the concrete type
+uses cgo to call a C interface function,
+which calls a method in the C++ proxy,
 which calls a method in the Slamtec driver.
-This seems a little excessive, but remember that
-your application is talking down a wire
+This seems a little excessive,
+but remember that
+your application is talking across a wire
 to a physical device with a spinning platform.
-The overhead of a few extra method calls is insignificant.
+Given the delays involved in that,
+the overhead of a few extra method calls is insignificant.
 
 The usb_driver.go file contains some magic to glue the Go and C++ components together:
 
@@ -272,20 +304,19 @@ The usb_driver.go file contains some magic to glue the Go and C++ components tog
 Behind the scenes, the go command runs the C++ compiler, which can compile both C++ and C code.
 The #cgo comment lines specify directives for the C++ compiler.
 
-    ${SRCDIR} defines the current directory.
-    -I says where to find the header files.
-    -l option specifies the name of a library file.
-    -L says which directory to find the libraries.
+    ${SRCDIR} defines the full path name of the current directory.
+    -I says where to find the C and C++ header files.
+    -l specifies the name of the library files, mostly standard ones in a known place.
+    -L specifies the directory containing the non-standard library file.
     -DDEBUG turns on debugging code.
     -g include symbol table data.
 
 The compiler knows where to find the standard libraries but
 it needs to be told where to find the Slamtec library that you built and copied.
-(-lfoo means the file "libfoo.a").
+(-lrplidar_sdk means the file "librplidar_sdk.a").
 
-Enabling debug also puts the library in a different directory.
-Actually
-the library contains very little debugging code, so enabling it doesn't do very much.
+The C++ library contains very little debugging code,
+so enabling it doesn't do very much.
  
 Including symbol table data with -g allows the system to add
 source code line numbers to error messages.
@@ -295,45 +326,60 @@ The #include lines are the C++ equivalent of a Go import directive.
 
 The "C" import allows the Go code to refer to the C code, for example:
 
-    driver C.RPDriver
+     driver C.RPDriver   
 
-creates a variable driver which is of C type RPDriver.
-That's the C interface to the C++ Driver class.
-Given that declaration, a Go method can call a C++ method like so:
+creates a variable driver of type RPDriver.
+That's one of the types declared in the C layer.
+It's the C interface to the C++ Driver class.
 
-    func (d ConcreteRPlidarDriver) StartMotor() {
+A Go method can call a C++ method like so:
+
 	    C.RPDriverStartMotor(d.driver)
-    }
 
-The cgo tool has a nasty habit of occasionally rewriting the original source code,
+That gets turned into a call of the method startMotor()
+in the class RPDriver.
+
+Fortunately,
+the Go wrapper takes care of all that malarky,
+so you don't have to worry about it.
+
+The cgo tool has a nasty habit of
+occasionally rewriting the original source code,
 including removing all comments.
-For this reason, I avoid putting comments in any code that's processed by cgo,
+For this reason
+I avoid putting comments in any code that's processed by cgo,
 in this case usb_driver.go.
 I put them in the interface instead.
 
 An alternative approach to implementing this Go driver would be to mimic the C++ driver line for line,
-but whoever did that would need to maintain it as new versons of the C++ driver are issued.
-As long as Slamtec respect their own interface in
+but whoever did that would need to maintain it as Slamtec releases
+new versons.
+As long as they respect their own interface in
 any future version of the C++ driver,
 this wrapper should work with it.
 
 For more details of Go calling C++ code via a C interface,
 read [the manual](https://golang.org/cmd/cgo/).
-[This Go project](github.com/burke/howto-go-with-cpp) provides a simple worked example,
-which I found very useful.
+I also found
+[this Go project](github.com/burke/howto-go-with-cpp) very useful.
+It provides a simple worked example of Go calling C++.
 
 I used [this Go library](https://github.com/fogleman/gg) to handle the graphics in the
 grabanddraw program.
 
-I had to write some layers of C and C++ for this project.
-I haven't used those languages for over twenty years
-so those bits
+I had to write some layers of C and C++ for this project,
+which was interesting,
+as I haven't used those languages for over twenty years
+Those bits of the solution
 could probably be improved.
+
+The godoc follows.
+You can prodce this yourself like so:
+
+    godoc cmd/github.com/goblimey/rplidar_sdk_go/driver
 
 
 ```
-use 'godoc cmd/github.com/goblimey/rplidar_sdk_go/driver' for documentation on the github.com/goblimey/rplidar_sdk_go/driver command 
-
 PACKAGE DOCUMENTATION
 
 package driver
