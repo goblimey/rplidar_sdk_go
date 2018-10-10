@@ -36,10 +36,14 @@ I'm assuming that it will work on an ARM-based system such as a Raspberry Pi,
 but I haven't tried it yet.
 I haven't tried the Mac version either.
 
-The photo rplidar.jpg
-shows the RPLidar working, driven by my grabanddraw program.
-The resulting floor plan is in scan.png.
-I ran the program in verbose mode and the tracing output is in scan.txt.
+The photo setup.jpg
+shows the RPLidar working, controlled by my grabanddraw program.
+The resulting floor plan is in floorplan.png.
+My program is very simple
+and it has some shortcomings
+that cause glitches in the scan.
+The scanner is actually pretty effective,
+especialy in the environment that it was designed for. 
 
 RPLidar is a range of scanners.
 Different models produce results of different accuracy.
