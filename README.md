@@ -38,6 +38,8 @@ I haven't tried the Mac version either.
 
 The photo setup.jpg
 shows the RPLidar working, controlled by my grabanddraw program.
+The scanner is the little circular device
+sitting on a pile of bricks next to the laptop.
 The resulting floor plan is in floorplan.png.
 My program is very simple
 and it has some shortcomings
